@@ -1,0 +1,54 @@
+#![sample("kubernetes")]
+
+application myapp {
+  // Common defaults
+  image = "org/myapp:1.2.3"
+  port = 8080
+
+  // Base deployment + service
+  deployment web {
+    replicas = 2
+    container = "web"
+    resources = {
+      cpu = "250m",
+      memory = "256Mi"
+    }
+  }
+
+  service web {
+    type = "ClusterIP"
+    port = 80
+    targetPort = 8080
+  }
+
+  ingress web {
+    host = "app.example.com"
+    path = "/"
+    service = "web"
+    tls = true
+  }
+
+  hpa web {
+    minReplicas = 2
+    maxReplicas = 10
+    targetCPU = 75
+  }
+
+  // Environment overlays
+  .staging {
+    deployment web { replicas = 2 }
+    ingress web { host = "staging.example.com" }
+  }
+
+  .prod {
+    deployment web {
+      replicas = 6
+      resources = { cpu = "500m", memory = "512Mi" }
+    }
+    ingress web { host = "app.example.com" }
+    hpa web {
+      minReplicas = 4
+      maxReplicas = 12
+    }
+  }
+}

@@ -1,0 +1,20 @@
+#![version("0.7")]
+
+compose myApp : docker.Compose {
+  .services {
+    service web {
+      image = "nginx:alpine"
+      ports = ["80:80"]
+      environment = [
+        "NGINX_HOST=foobar.com",
+        "NGINX_PORT=80",
+      ]
+      volumes = ["./data:/var/www/html"]
+      depends_on = [redis]
+    }
+
+    service redis {
+      image = "redis:alpine"
+    }
+  }
+}

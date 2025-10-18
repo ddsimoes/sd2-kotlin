@@ -1,0 +1,31 @@
+#![sample("airflow")]
+
+dag etl_daily {
+  schedule = "0 6 * * *"
+  startDate = date("2024-03-15")
+
+  task extract {
+    run = @'''
+      python3 - <<'PY'
+      print('extracting...')
+      PY
+    '''
+    retries = 2
+  }
+
+  task transform {
+    run = @'bash -lc "./transform.sh"'
+    retries = 1
+  }
+
+  task load {
+    run = @'bash -lc "./load.sh"'
+    retries = 1
+  }
+
+  // Dependencies: load after transform, transform after extract
+  edges = {
+    transform = ["extract"],
+    load = ["transform"]
+  }
+}

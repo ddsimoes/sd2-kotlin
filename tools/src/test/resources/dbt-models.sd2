@@ -1,0 +1,23 @@
+#![sample("dbt")]
+
+project analytics {
+  model users {
+    sql = @'''
+      select id, email, created_at
+      from raw.users
+    '''
+    materialized = "table"
+  }
+
+  model orders {
+    sql = @'''
+      select id, user_id, total, created_at
+      from raw.orders
+    '''
+    materialized = "incremental"
+    unique_key = "id"
+  }
+
+  test users_not_null { column = "id" }
+}
+

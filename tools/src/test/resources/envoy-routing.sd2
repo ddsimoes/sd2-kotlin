@@ -1,0 +1,16 @@
+#![sample("envoy-nginx-traefik")]
+
+gateway edge {
+  route api {
+    match = "/api/"
+    cluster = "api-svc"
+    timeout = duration("PT2S")
+    retries = { attempts = 3, perTryTimeout = duration("PT1S") }
+  }
+
+  route static {
+    match = "/"
+    cluster = "web-svc"
+    gzip = true
+  }
+}

@@ -1,0 +1,24 @@
+#![sample("helm-values")]
+
+chart webapp {
+  image = "org/web:1.4.0"
+  replicas = 2
+  env = {
+    NODE_ENV = "production",
+    LOG_LEVEL = "info"
+  }
+
+  ingress {
+    host = "web.example.com"
+    tls = true
+  }
+
+  .dev {
+    replicas = 1
+    ingress {
+      host = "dev-web.example.com"
+      tls = false
+    }
+  }
+  .prod { replicas = 5 }
+}

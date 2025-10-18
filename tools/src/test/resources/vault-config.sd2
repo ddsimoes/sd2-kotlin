@@ -1,0 +1,24 @@
+#![sample("vault")]
+
+vault setup {
+  // Enable Kubernetes auth
+  auth kubernetes {
+    path = "auth/kubernetes"
+    cluster_role = "vault-auth"
+  }
+
+  // Policies
+  policy readonly {
+    path `/secret/data/*` { capabilities = ["read","list"] }
+  }
+
+  // KV secrets
+  secret app_config {
+    mount = "secret"
+    path = "app/config"
+    data = {
+      DATABASE_URL = "postgres://user:pass@db/app",
+      FEATURE_X = "true"
+    }
+  }
+}

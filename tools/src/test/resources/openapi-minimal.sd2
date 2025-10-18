@@ -1,0 +1,22 @@
+#![sample("openapi")]
+
+api users {
+  title = "Users API"
+  version = "1.0.0"
+  server = "https://api.example.com"
+
+  path `/users` {
+    get {
+      summary = "List users"
+      response ok {
+        contentType = "application/json"
+        schema = @"""
+{
+  "type": "array",
+  "items": { "type": "object", "properties": { "id": {"type":"string"}, "name": {"type":"string"} } }
+}
+"""
+      }
+    }
+  }
+}

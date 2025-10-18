@@ -1,0 +1,34 @@
+#![sample("github-actions")]
+
+workflow build_and_test {
+  name = "CI"
+  on = {
+    push = ["main"],
+    pull_request = ["*"]
+  }
+
+  job setup {
+    runsOn = "ubuntu-latest"
+    steps = [
+      { name = "Checkout", uses = "actions/checkout@v4" },
+      { name = "Setup Node", uses = "actions/setup-node@v4", with = { node-version = "20" } }
+    ]
+  }
+
+  job build {
+    needs = ["setup"]
+    runsOn = "ubuntu-latest"
+    steps = [
+      { name = "Install", run = @'npm ci' },
+      { name = "Build", run = @'npm run build' },
+      { name = "Test", run = @'npm test -- --ci' }
+    ]
+  }
+
+  job lint {
+    needs = ["setup"]
+    runsOn = "ubuntu-latest"
+    steps = [ { name = "Lint", run = @'npm run lint' } ]
+  }
+}
+

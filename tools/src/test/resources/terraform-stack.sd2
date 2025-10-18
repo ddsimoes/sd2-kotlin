@@ -1,0 +1,39 @@
+#![sample("terraform")]
+
+stack infra {
+  provider aws {
+    region = "us-east-1"
+    profile = "prod"
+  }
+
+  backend s3 {
+    bucket = "tf-state-bucket"
+    key = "infra/terraform.tfstate"
+    dynamodb_table = "tf-locks"
+  }
+
+  module vpc {
+    source = "terraform-aws-modules/vpc/aws"
+    cidr = "10.0.0.0/16"
+    azs = ["us-east-1a","us-east-1b","us-east-1c"]
+    enable_nat_gateway = true
+  }
+
+  module eks {
+    source = "terraform-aws-modules/eks/aws"
+    cluster_name = "prod-eks"
+    vpc_id = "vpc-123456"
+    subnet_ids = ["subnet-a","subnet-b","subnet-c"]
+    desired_size = 3
+    min_size = 3
+    max_size = 9
+  }
+
+  .prod {
+    module eks {
+      desired_size = 6
+      min_size = 6
+      max_size = 12
+    }
+  }
+}

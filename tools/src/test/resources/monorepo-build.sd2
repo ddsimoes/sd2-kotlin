@@ -1,0 +1,25 @@
+#![sample("monorepo-build")]
+
+repo app {
+  module core {
+    deps = []
+    visibility = "public"
+  }
+
+  module api {
+    deps = ["core"]
+  }
+
+  module web {
+    deps = ["core","api"]
+  }
+
+  target test_core {
+    module = "core"
+    kind = "test"
+  }
+  target build_web {
+    module = "web"
+    kind = "build"
+  }
+}

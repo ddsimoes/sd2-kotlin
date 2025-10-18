@@ -1,0 +1,32 @@
+#![sample("kafka")]
+
+kafka cluster {
+  topic orders {
+    partitions = 12
+    replication = 3
+    retention = duration("PT24H")
+  }
+
+  topic payments {
+    partitions = 6
+    replication = 3
+    retention = duration("PT72H")
+  }
+
+  acl appReader {
+    principal = "User:app"
+    operation = ["READ","DESCRIBE"]
+    resource = ["Topic:orders","Topic:payments"]
+  }
+
+  connector sink_s3 {
+    type = "S3SinkConnector"
+    config = @"""
+{
+  "topics": "orders",
+  "s3.bucket.name": "analytics-bucket",
+  "format.class": "io.confluent.connect.s3.format.json.JsonFormat"
+}
+"""
+  }
+}

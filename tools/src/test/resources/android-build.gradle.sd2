@@ -1,0 +1,137 @@
+#![plugin("com.android.application")]
+#![plugin("com.android.kotlin")]
+#![plugin("org.jetbrains.compose")]
+
+
+project myapp : com.android.AndroidApplication {
+
+    properties {
+        appVersion = rootProject.extra.appVersion
+        appCode = rootProject.extra.appCode
+        coreLibVersion = rootProject.extra.coreLibVersion
+    }
+
+    // namespaced with using . because is an extension
+    .android {
+        namespace = "com.example.myapp"
+        compileSdk = 34
+        
+        defaultConfig {
+            applicationId = "com.example.myapp"
+            minSdk = 26
+            targetSdk = 34
+            versionCode = 100
+            versionName = "1.0.0"
+            multiDexEnabled = true
+            testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        }
+        
+        signing {
+            config release {
+                storeFile = "keystore/release.keystore"
+                storePassword = "SecurePassword123"
+                keyAlias = "release_key"
+                keyPassword = "SecurePassword123"
+            }
+        }
+        
+        buildType {
+            type debug {
+                debuggable = true
+                applicationIdSuffix = ".debug"
+                
+                stringResource app_name {
+                    value = "MyApp Debug"
+                }
+            }
+            
+            type release {
+                minifyEnabled = false
+                signingConfig = release
+                proguardFiles = [
+                    "proguard-android-optimize.txt",
+                    "proguard-rules.pro"
+                ]
+            }
+        }
+        
+        compileOptions {
+            sourceCompatibility = VERSION_1_8
+            targetCompatibility = VERSION_1_8
+        }
+        
+        kotlinOptions {
+            jvmTarget = "1.8"
+        }
+        
+        buildFeatures {
+            compose = true
+        }
+        
+        packagingOptions {
+            resourceExcludes = [
+                "/META-INF/AL2.0",
+                "/META-INF/LGPL2.1"
+            ]
+        }
+    }
+    
+    resolutionRules {
+        exclude {
+            group = "com.google.guava"
+            module = "listenablefuture"
+        }
+        
+        forceVersion {
+            groupPattern = "com.example.core"
+            version = "${coreLibVersion}"
+        }
+    }
+    
+    dependencies {
+        // Catalog dependency
+        implementation {
+            module = "androidx.core:core-ktx"
+            fromCatalog = true
+        }
+        
+        // Platform/BOM dependency
+        implementation {
+            module = "androidx.compose:compose-bom"
+            platform = true
+            fromCatalog = true
+        }
+        
+        // Regular dependency with version
+        implementation {
+            group = "com.example"
+            artifact = "json-parser"
+            version = "2.3.4"
+        }
+        
+        // AAR dependency with excludes
+        implementation {
+            group = "com.example.ui"
+            artifact = "components"
+            version = "1.5.0"
+            packaging = "aar"
+            
+            exclude {
+                group = "com.google.guava"
+            }
+        }
+        
+        // Native library for multiple architectures
+        implementation {
+            group = "com.example.native"
+            artifact = "mylib-arm64-v8a"
+            version = "1.0.0"
+        }
+        
+        implementation {
+            group = "com.example.native"
+            artifact = "mylib-x86"
+            version = "1.0.0"
+        }
+    }
+}

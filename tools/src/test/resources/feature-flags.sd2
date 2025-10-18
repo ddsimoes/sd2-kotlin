@@ -1,0 +1,26 @@
+#![sample("feature-flags")]
+
+flags shop {
+  flag newCheckout {
+    enabled = false
+    rollout = 0.0
+
+    segment vip {
+      enabled = true
+      rollout = 1.0
+    }
+    segment beta {
+      enabled = true
+      rollout = 0.5
+    }
+
+    .prod {
+      enabled = true
+      rollout = 0.5
+    }
+    .staging {
+      enabled = true
+      rollout = 1.0
+    }
+  }
+}

@@ -1,0 +1,23 @@
+#![sample("prometheus-grafana")]
+
+monitoring stack {
+  alert highErrorRate {
+    expr = @'^sum(rate(http_requests_total{status=~"5.."}[5m])) > 0.1$'
+    for = duration("PT5M")
+    labels = { severity = "page", team = "api" }
+    annotations = { summary = "High 5xx error rate" }
+  }
+
+  dashboard api {
+    panel latency_p90 {
+      title = "Latency p90"
+      prom = @'histogram_quantile(0.9, sum by (le)(rate(http_request_duration_seconds_bucket[5m])))'
+      unit = "ms"
+    }
+    panel rps {
+      title = "Requests per second"
+      prom = @'sum(rate(http_requests_total[1m]))'
+      unit = "req/s"
+    }
+  }
+}
