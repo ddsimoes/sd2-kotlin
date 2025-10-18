@@ -1,12 +1,12 @@
-# SD2 (Kotlin) — SD2 Language v0.7
+# SD2 (Kotlin) — SD2 Language v0.8
 
 SD2 is a context‑free, declarative language for describing structured data and DSLs. This repository provides:
-- `sd2-parser`: a Kotlin Multiplatform streaming parser for SD2 v0.7
+- `sd2-parser`: a Kotlin Multiplatform streaming parser for SD2 v0.8
 - `tools`: a formatter and validator with a small CLI
 
-See the full language specification in `sd2-spec-v0.7.md`.
+See the full language specification in `sd2-spec.md`.
 
-## Highlights (v0.7)
+## Highlights (v0.8)
 - Significant `NEWLINE`; explicit qualifier continuation with `|` in column 1
 - Identifiers with backticks when needed; reserved words: `true`, `false`, `null`
 - Values: numbers, booleans, null, strings, lists, maps, foreign code
@@ -15,10 +15,11 @@ See the full language specification in `sd2-spec-v0.7.md`.
   - Map‑constructor: `Name { key = value }`
   - Tuple‑constructor: `Name(a, b, c)` (positional)
 - Same‑line rule for constructors: `{`/`(` must be on the same line as the name
+- Maps: entries must be comma‑separated; trailing comma is allowed
 
 Example
 ```
-#![version("0.7")]
+#![version("0.8")]
 
 service api : com.example.RestService<Request, Response>
 | implements auth.OAuth2Provider, security.Auditable {
@@ -119,7 +120,7 @@ val allIssues = Sd2Validator.validateAll(formatted)     // collect all errors (r
 - `E6002` — Newline in backtick identifier
 - `E7001` — Signed hex/binary integers are not allowed
 
-Full details in `sd2-spec-v0.7.md`.
+Full details in `sd2-spec.md`.
 
 ## License
 
@@ -127,5 +128,4 @@ This project is licensed under the terms of the `LICENSE` file.
 
 ## Contributing
 
-Issues and PRs are welcome. Please align with the spec (`sd2-spec-v0.7.md`), keep changes minimal and focused, and include tests.
-
+Issues and PRs are welcome. Please align with the spec (`sd2-spec.md`), keep changes minimal and focused, and include tests.
