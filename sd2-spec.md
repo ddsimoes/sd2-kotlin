@@ -243,9 +243,9 @@ Map key guidelines:
 
 ### 4.3 Tuples and Constructors
 
-- Tuple literal: `(v1, v2, ..., vn)` with `n ≥ 1`
-  - Single-element tuples must include a trailing comma: `(x,)`
-  - Empty tuples `()` are not allowed; `(x)` is invalid (no generic grouping)
+- Tuple literal: `(v1, v2, ..., vn)` with `n ≥ 0`
+  - Single-element tuples can be written as `(x)`; trailing comma is optional
+  - Empty tuples `()` are allowed
 - Map-constructor: `QualifiedName { attribute = value ... }` (named arguments)
 - Tuple-constructor: `QualifiedName(v1, v2, ..., vn)` (positional arguments)
 
@@ -256,7 +256,7 @@ Same-line requirements:
 Examples:
 ```sd2
 center = (-25.43, -49.27)
-one = (42,)
+one = (42)
 timeout = duration { seconds = 30 }
 retry = policy { attempts = 3 }
 cache = storage.cache.Redis { host = "localhost" }
@@ -449,8 +449,7 @@ primitive       = number | boolean | string | null_literal ;
 null_literal    = "null" ;
 number          = integer | float ;
 
-tuple           = "(" value { "," value } [ "," ] ")"
-                | "(" value "," ")" ;
+tuple           = "(" [ value { "," value } [ "," ] ] ")" ;
 
 list            = "[" [ value { "," value } [ "," ] ] "]" ;
 map             = "{" [ map_entry { "," map_entry } [ "," ] ] "}" ;
@@ -501,7 +500,6 @@ config {
 - E1002 — Line continuation '|' must be in column 1 immediately after NEWLINE
 - E1004 — Line continuation '|' used outside qualifier context
 - E1005 — '(' of a tuple-constructor must be on the same line as its name
-- E1011 — Parentheses without a comma do not form a valid tuple; use '(x,)' for a single-element tuple
 - E2001 — Duplicate attribute in the same scope
 - E2002 — Attribute after namespace/sub-element
 - E2003 — Duplicate key in map literal

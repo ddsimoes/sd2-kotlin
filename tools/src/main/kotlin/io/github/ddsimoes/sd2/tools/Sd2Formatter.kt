@@ -83,7 +83,7 @@ object Sd2Formatter {
             }
             is Sd2Value.VTuple -> buildString {
                 val inner = v.items.joinToString(separator = ", ") { printValue(it) }
-                if (v.items.size == 1) append("(").append(inner).append(",)") else append("(").append(inner).append(")")
+                append('(').append(inner).append(')')
             }
             is Sd2Value.VConstructorTuple -> v.args.joinToString(prefix = "${printQName(v.name)}(", postfix = ")", separator = ", ") { printValue(it) }
         }

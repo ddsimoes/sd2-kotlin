@@ -201,6 +201,30 @@ class Sd2SpecTest {
     }
 
     @Test
+    fun simpleTuples() {
+        val input = """
+            data P {
+              a = ()
+              b = (1)
+              c = (1,)
+              d = (1, "two")
+              e = (1, "two",)
+            }
+        """.trimIndent()
+        val attrs = collect(input).filterIsInstance<Sd2Event.Attribute>()
+        val a = attrs.first { it.name.text == "a" }.value as Sd2Value.VTuple
+        assertEquals(0, a.items.size)
+        val b = attrs.first { it.name.text == "b" }.value as Sd2Value.VTuple
+        assertEquals(1, b.items.size)
+        val c = attrs.first { it.name.text == "c" }.value as Sd2Value.VTuple
+        assertEquals(1, c.items.size)
+        val d = attrs.first { it.name.text == "d" }.value as Sd2Value.VTuple
+        assertEquals(2, d.items.size)
+        val e = attrs.first { it.name.text == "e" }.value as Sd2Value.VTuple
+        assertEquals(2, e.items.size)
+    }
+
+    @Test
     fun tupleLiteralAndConstructor() {
         val input = """
             data P {
@@ -268,10 +292,6 @@ class Sd2SpecTest {
 
     @Test
     fun tupleErrors() {
-        val bad1 = """
-            x A { v = (1) }
-        """.trimIndent()
-        assertFailsWith<ParseError> { collect(bad1) }
         val bad2 = """
             x A {
               v = Name

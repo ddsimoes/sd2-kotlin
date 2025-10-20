@@ -267,8 +267,9 @@ internal class Sd2StreamReader(
         val items = mutableListOf<Sd2Value>()
         skipNewlines()
         if (peek().kind == TKind.RPAREN) {
-            // empty tuple is not allowed by proposal (n >= 1)
-            throw ParseError("E1011", "parentheses without a comma do not form a valid tuple; use '(x,)' for a single-element tuple", peek().loc)
+            // allow empty tuple ()
+            consume() // RPAREN
+            return Sd2Value.VTuple(items, tok.loc)
         }
         // read first value
         val first = parseSimpleValue()
@@ -284,10 +285,7 @@ internal class Sd2StreamReader(
             skipNewlines()
         }
         expect(TKind.RPAREN, "expected ')' to close tuple")
-        // Single-element case: must have a trailing comma per proposal
-        if (items.size == 1 && !sawComma) {
-            throw ParseError("E1011", "parentheses without a comma do not form a valid tuple; use '(x,)' for a single-element tuple", tok.loc)
-        }
+        // Single-element tuples without trailing comma are now allowed
         return Sd2Value.VTuple(items, tok.loc)
     }
 

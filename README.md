@@ -10,7 +10,7 @@ See the full language specification in `sd2-spec.md`.
 - Significant `NEWLINE`; explicit qualifier continuation with `|` in column 1
 - Identifiers with backticks when needed; reserved words: `true`, `false`, `null`
 - Values: numbers, booleans, null, strings, lists, maps, foreign code
-- Tuples: `(a, b, c)`; single‑element as `(x,)` (empty `()` is invalid)
+- Tuples: `(a, b, c)`; single‑element `(x)`; empty `()` allowed
 - Constructors:
   - Map‑constructor: `Name { key = value }`
   - Tuple‑constructor: `Name(a, b, c)` (positional)
@@ -28,7 +28,7 @@ service api : com.example.RestService<Request, Response>
 
   // Tuple
   center = (-25.43, -49.27)
-  one = (42,)
+  one = (42)
 
   // Constructors
   timeout = duration { seconds = 30 }
@@ -111,7 +111,6 @@ val allIssues = Sd2Validator.validateAll(formatted)     // collect all errors (r
 - `E1002` — Line continuation `|` must be in column 1 after NEWLINE
 - `E1004` — Line continuation `|` used outside qualifier context
 - `E1005` — `(` of a tuple‑constructor must be on the same line as its name
-- `E1011` — Parentheses without a comma do not form a tuple; use `(x,)`
 - `E2001` — Duplicate attribute in the same scope
 - `E2002` — Attribute after namespace/sub‑element
 - `E2003` — Duplicate key in map literal

@@ -102,6 +102,35 @@ class ToolsTest {
     }
 
     @Test
+    fun tupleFormatting() {
+        val input = """
+            data P {
+              a = ()
+              b = (1)
+              c = (1,)
+              d = (1, "two")
+              e = (1, "two",)
+            }
+        """.trimIndent()
+        val formatted = Sd2Formatter.format(input)
+        val expected = """
+            data P {
+              a = ()
+              b = (1)
+              c = (1)
+              d = (1, "two")
+              e = (1, "two")
+            }
+        """.trimIndent() + "\n"
+        assertEquals(expected, formatted)
+        // Should be idempotent
+        assertEquals(formatted, Sd2Formatter.format(formatted))
+        // Should validate cleanly
+        val issues = Sd2Validator.validate(formatted)
+        assertTrue(issues.isEmpty(), "No issues expected: $issues")
+    }
+
+    @Test
     fun continuationMisuseAndGenericsError() {
         val bad = """
             service s : List<String {
