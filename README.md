@@ -1,85 +1,126 @@
-# SD2 (Kotlin) — SD2 Language v0.8
+# SD2 Format (Draft)
 
-SD2 is a context‑free, declarative language for describing structured data and DSLs. This repository provides:
-- `sd2-parser`: a Kotlin Multiplatform streaming parser for SD2 v0.8
-- `tools`: a formatter and validator with a small CLI
+Status: DRAFT / alpha. The format and tooling may change.
 
-See the full language specification in `sd2-spec.md`.
+This repository contains a Kotlin parser and small tools for the SD2 data format. The goal is a readable, minimal syntax to describe structured data.
 
-## Highlights (v0.8)
-- Significant `NEWLINE`; explicit qualifier continuation with `|` in column 1
-- Identifiers with backticks when needed; reserved words: `true`, `false`, `null`
-- Values: numbers, booleans, null, strings, lists, maps, foreign code
-- Tuples: `(a, b, c)`; single‑element `(x)`; empty `()` allowed
-- Constructors:
-  - Map‑constructor: `Name { key = value }`
-  - Tuple‑constructor: `Name(a, b, c)` (positional)
-- Same‑line rule for constructors: `{`/`(` must be on the same line as the name
-- Maps: entries must be comma‑separated; trailing comma is allowed
+For the full specification see `sd2-spec.md`. This README focuses on the core format with simple examples.
 
-Example
+Basics
+- A document is a sequence of elements.
+- Each element has a keyword, optional identifier, and a body in braces.
+- Bodies contain attributes (`name = value`).
+- Newlines are significant: each attribute ends with a newline.
+
+Quick Example
 ```
-#![version("0.8")]
-
-service api : com.example.RestService<Request, Response>
-| implements auth.OAuth2Provider, security.Auditable {
+service api {
   host = "localhost"
   port = 8080
-
-  // Tuple
-  center = (-25.43, -49.27)
-  one = (42)
-
-  // Constructors
-  timeout = duration { seconds = 30 }
-  createdAt = datetime("2024-03-15T14:30:00Z")
-
-  .security {
-    ssl = true
-    window = duration("PT1M")
-  }
 }
 ```
 
-## Modules
+Elements
+- Syntax: `keyword [identifier] { ... }`
+- Identifiers that need escaping can be written with backticks: `` `my id` ``
 
-- `sd2-parser`: Kotlin Multiplatform library exposing a streaming reader API and a light value model for materialized mode.
-- `tools`: Formatter (`Sd2Formatter`) and Validator (`Sd2Validator`) with a CLI.
+Attributes
+- Inside a body: `name = value` on its own line.
+- Primitive values: integers, floats, booleans, null, and strings.
 
-## Build and Test
+Values
+- Numbers: `0`, `42`, `3.14`
+- Booleans and null: `true`, `false`, `null`
+- Strings: `"hello"` (use `\n`, `\t`, etc. as needed)
+- Lists: `[1, 2, 3]` (trailing comma allowed)
+- Maps: `{ key = 1, other = 2 }` (comma-separated, trailing comma allowed)
+- Tuples: `()`, `(x)`, `(a, b, c)` (single-element without trailing comma is allowed)
+- Qualified names: `a.b.c`
 
-- Run tests:
-  - `./gradlew :sd2-parser:jvmTest`
-  - `./gradlew :tools:test`
-- Run the CLI:
-  - `./gradlew :tools:run --args 'validate path/file.sd2'`
-  - `./gradlew :tools:run --args 'validate --recover path/file.sd2'`
-  - `./gradlew :tools:run --args 'format path/file.sd2'`
-  - `./gradlew :tools:run --args 'format --in-place path/file.sd2'`
+Constructors
+- Map-constructor (named args): `Name { key = value }`
+- Tuple-constructor (positional args): `Name(1, 2, 3)`
 
-CLI usage
+Examples
 ```
-Usage:
-  sd2 format <input.sd2> [output.sd2]
-  sd2 validate <input.sd2>
+config app {
+  // Tuple values
+  origin = (0, 0)
+  single = (42)
+  empty = ()
 
-Examples:
-  sd2 format path/file.sd2
-  sd2 format path/file.sd2 path/out.sd2
-  sd2 format --in-place path/file.sd2
-  sd2 validate path/file.sd2
-  sd2 validate --recover path/file.sd2
+  // Lists and maps
+  ports = [8080, 8443]
+  settings = { retries = 3, timeout = 30 }
+
+  // Constructors
+  timeout = duration { seconds = 30 }
+  point = Point(10, 20)
+}
 ```
 
-## Parser API (Kotlin)
+Use cases / ideas
 
+- INI / .properties
+  ```
+  app config {
+    host = "localhost"
+    port = 8080
+    db = { host = "db.local", port = 5432 }
+    features = ["a", "b"]
+  }
+  ```
+
+- Docker Compose like
+  ```
+  compose app {
+    version = "3.9"
+    service web {
+      image = "nginx:latest",
+      ports = ["8080:80"]
+    }
+  }
+  ```
+
+- Kubernetes like
+  ```
+  deploy api {
+    replicas = 2
+    container {
+      image = "example/api:1.0",
+      ports = [8080]
+    }
+  }
+  ```
+
+- Terraform like
+  ```
+  resource bucket {
+    versioning = { enabled = true }
+    labels = { env = "prod", team = "platform" }
+  }
+  ```
+
+Foreign Code (simple)
+- Single-line: `pattern = @'^\d+$'`
+- Double-quoted: `query = @"SELECT 1"`
+
+Notes
+- Bodies and constructor delimiters (`{`, `(`) must be on the same line as the preceding name.
+- Map entries must be comma-separated; lists and maps accept a trailing comma.
+
+CLI (tools)
+- Format: `./gradlew :tools:run --args 'format path/file.sd2'`
+- Validate: `./gradlew :tools:run --args 'validate path/file.sd2'`
+
+Library (Kotlin)
 ```
 import io.github.ddsimoes.sd2.*
 
 val input = """
-widget Button {
-  text = "Click"
-  color = theme.primary
+service api {
+  host = "localhost"
+  port = 8080
   point = Point(10, 20)
 }
 """.trimIndent()
@@ -87,44 +128,81 @@ widget Button {
 val r = Sd2.reader(StringSource(input))
 while (true) {
   when (val e = r.next()) {
-    is Sd2Event.StartDocument -> {}
     is Sd2Event.StartElement -> println("element ${e.keyword} id=${e.id?.text}")
-    is Sd2Event.Attribute -> println("attr ${e.name.text} = ${e.value}")
-    is Sd2Event.EndDocument -> break
+    is Sd2Event.Attribute    -> println("attr ${e.name.text} = ${e.value}")
+    is Sd2Event.EndDocument  -> break
     else -> {}
   }
 }
 ```
 
-## Formatter and Validator (Library)
+License
+- See `LICENSE`.
 
-```
-import io.github.ddsimoes.sd2.tools.*
+Advanced Features
+- The following features are considered advanced and typically matter for extensible formats (e.g., plugin ecosystems). They are supported by the parser and tools but are not required for simple usage.
 
-val formatted = Sd2Formatter.format(input)
-val issues = Sd2Validator.validate(formatted)           // first error (if any)
-val allIssues = Sd2Validator.validateAll(formatted)     // collect all errors (recovery)
-```
+- Annotations
+  - Document and element annotations add metadata to elements or the whole file.
+  - Example:
+    ```
+    #![version("0.8")]
+    
+    #[deprecated]
+    service api { }
+    ```
 
-## Errors (selected)
-- `E1001` — `{` of a constructor must be on the same line as its name
-- `E1002` — Line continuation `|` must be in column 1 after NEWLINE
-- `E1004` — Line continuation `|` used outside qualifier context
-- `E1005` — `(` of a tuple‑constructor must be on the same line as its name
-- `E2001` — Duplicate attribute in the same scope
-- `E2002` — Attribute after namespace/sub‑element
-- `E2003` — Duplicate key in map literal
-- `E2004` — Duplicate element (same keyword + same identifier)
-- `E5001` — Missing `>` to close type parameters
-- `E6002` — Newline in backtick identifier
-- `E7001` — Signed hex/binary integers are not allowed
+- Type Declarations and Generics
+  - Elements may declare a type after `:`; generic type parameters use `<>`.
+  - Example:
+    ```
+    service api : com.example.RestService<Request, Response> {
+      port = 8080
+    }
+    ```
 
-Full details in `sd2-spec.md`.
+- Qualifier Continuations (pipe)
+  - Some formats use qualifiers after the header; long qualifier lists can be continued on the next line with `|` in column 1.
+  - Example:
+    ```
+    service api : AppService implements auth.OAuth2Provider, logging.Structured {
+      host = "localhost"
+    }
 
-## License
+    // With continuation
+    service backend : AppService
+    | implements auth.OAuth2Provider, logging.Structured {
+      host = "backend.local"
+    }
+    ```
 
-This project is licensed under the terms of the `LICENSE` file.
+- Namespaces
+  - Namespaces create nested scopes inside bodies; recommended mainly for extensible/plugin use cases.
+  - Example:
+    ```
+    service api {
+      host = "localhost"
+      .security {
+        ssl = true
+      }
+    }
+    ```
 
-## Contributing
+- Backtick Identifiers
+  - Use backticks for identifiers that include spaces or reserved words.
+  - Example:
+    ```
+    keyword `my id` {
+      `null` = "value"
+    }
+    ```
 
-Issues and PRs are welcome. Please align with the spec (`sd2-spec.md`), keep changes minimal and focused, and include tests.
+- Foreign Code with Constructors
+  - Prefix foreign content with a constructor to indicate interpretation; no whitespace before `@`.
+  - Example:
+    ```
+    scripts {
+      health = sh@'echo ok'
+      query  = sql@"SELECT 1"
+    }
+    ```
