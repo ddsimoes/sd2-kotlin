@@ -41,27 +41,9 @@ Constructors
 - Map-constructor (named args): `Name { key = value }`
 - Tuple-constructor (positional args): `Name(1, 2, 3)`
 
-Examples
-```
-config app {
-  // Tuple values
-  origin = (0, 0)
-  single = (42)
-  empty = ()
+Use cases and examples
 
-  // Lists and maps
-  ports = [8080, 8443]
-  settings = { retries = 3, timeout = 30 }
-
-  // Constructors
-  timeout = duration { seconds = 30 }
-  point = Point(10, 20)
-}
-```
-
-Use cases / ideas
-
-- INI / .properties
+- Simple configuration
   ```
   app config {
     host = "localhost"
@@ -96,8 +78,12 @@ Use cases / ideas
 - Terraform like
   ```
   resource bucket {
-    versioning = { enabled = true }
-    labels = { env = "prod", team = "platform" }
+    versioning {
+      enabled = true 
+    }
+    labels {
+      env = "prod", team = "platform"
+    }
   }
   ```
 
