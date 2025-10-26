@@ -11,6 +11,10 @@ data class Sd2ReaderConfig(
     val streamValues: Boolean = false,
     val allowRecovery: Boolean = false,
     val onError: ((Sd2Error) -> Unit)? = null,
+    // Optional registry of constructor handlers. When provided, the parser will
+    // attempt to resolve constructor calls into materialized objects (VObject).
+    val constructorRegistry: ConstructorRegistry? = null,
+    val unknownConstructorPolicy: UnknownConstructorPolicy = UnknownConstructorPolicy.KeepRaw,
 )
 
 data class Location(val line: Int, val column: Int, val offset: Int)
@@ -70,6 +74,8 @@ sealed class Sd2Value(open val location: Location) {
     // v0.7: tuple literal and tuple-constructor (positional)
     data class VTuple(val items: List<Sd2Value>, override val location: Location) : Sd2Value(location)
     data class VConstructorTuple(val name: QualifiedName, val args: List<Sd2Value>, override val location: Location) : Sd2Value(location)
+    // Materialized value produced by a registered constructor handler
+    data class VObject(val type: QualifiedName, val value: Any, override val location: Location) : Sd2Value(location)
 }
 
 // Simple syntax nodes referenced by events
@@ -85,4 +91,50 @@ data class Annotation(val name: QualifiedName, val argsRaw: String? = null)
 object Sd2 {
     fun reader(source: Sd2Source, config: Sd2ReaderConfig = Sd2ReaderConfig()): Sd2Reader =
         Sd2StreamReader(source, config)
+}
+
+// -------- Constructor Registry API --------
+
+enum class UnknownConstructorPolicy { Error, KeepRaw }
+
+data class ConstructorCall(
+    val name: QualifiedName,
+    val args: List<Sd2Value> = emptyList(),
+    val attrs: Map<String, Sd2Value>? = null,
+    val location: Location,
+)
+
+fun interface ConstructorHandler<T : Any> {
+    fun invoke(call: ConstructorCall, ctx: ConstructorContext): T
+}
+
+data class RegisteredConstructor(val type: QualifiedName, val handler: ConstructorHandler<Any>)
+
+interface ConstructorRegistry {
+    fun handlerFor(name: QualifiedName): RegisteredConstructor?
+}
+
+class ConstructorRegistryBuilder {
+    private val map = LinkedHashMap<List<String>, RegisteredConstructor>()
+
+    fun register(name: String, handler: ConstructorHandler<Any>) = register(name, name, handler)
+
+    fun register(name: String, typeTag: String, handler: ConstructorHandler<Any>) {
+        val nameParts = name.split('.').filter { it.isNotEmpty() }
+        val typeParts = typeTag.split('.').filter { it.isNotEmpty() }
+        map[nameParts] = RegisteredConstructor(
+            type = QualifiedName(typeParts.map { Identifier(it) }),
+            handler = handler,
+        )
+    }
+
+    fun build(): ConstructorRegistry = object : ConstructorRegistry {
+        private val table = map.toMap()
+        override fun handlerFor(name: QualifiedName): RegisteredConstructor? = table[name.parts.map { it.text }]
+    }
+}
+
+interface ConstructorContext {
+    fun resolve(value: Sd2Value): Sd2Value
+    fun error(code: String, message: String, at: Location? = null): Nothing
 }

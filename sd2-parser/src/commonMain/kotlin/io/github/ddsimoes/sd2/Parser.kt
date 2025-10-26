@@ -249,16 +249,78 @@ internal class Sd2StreamReader(
                 }
                 if (peek().kind == TKind.LBRACE) {
                     val attrs = parseConstructorBody()
-                    return Sd2Value.VConstructor(qn, attrs, startLoc)
+                    // Try constructor resolution when registry present
+                    val resolved = attemptResolveConstructor(qn, args = null, attrs = attrs, loc = startLoc)
+                    return resolved ?: Sd2Value.VConstructor(qn, attrs, startLoc)
                 }
                 if (peek().kind == TKind.LPAREN) {
                     val args = parseTupleLikeArguments()
-                    return Sd2Value.VConstructorTuple(qn, args, startLoc)
+                    // Try constructor resolution when registry present
+                    val resolved = attemptResolveConstructor(qn, args = args, attrs = null, loc = startLoc)
+                    return resolved ?: Sd2Value.VConstructorTuple(qn, args, startLoc)
                 }
                 Sd2Value.VQualifiedName(qn.parts.map { it.text }, startLoc)
             }
             TKind.AT -> parseForeignCode()
             else -> throw error("unexpected token in value: ${peek().kind}")
+        }
+    }
+
+    // ---- Constructor resolution helpers ----
+    private fun attemptResolveConstructor(
+        name: QualifiedName,
+        args: List<Sd2Value>?,
+        attrs: Map<String, Sd2Value>?,
+        loc: Location,
+    ): Sd2Value? {
+        val reg = config.constructorRegistry ?: return null
+        val entry = reg.handlerFor(name)
+        if (entry == null) {
+            return when (config.unknownConstructorPolicy) {
+                UnknownConstructorPolicy.KeepRaw -> null
+                UnknownConstructorPolicy.Error -> throw ParseError("E5001", "unknown constructor: ${name.parts.joinToString(".")}", loc)
+            }
+        }
+
+        val handler = entry.handler
+        val call = ConstructorCall(name = name, args = args ?: emptyList(), attrs = attrs, location = loc)
+        val ctx = object : ConstructorContext {
+            override fun resolve(value: Sd2Value): Sd2Value = resolveValue(value)
+            override fun error(code: String, message: String, at: Location?): Nothing =
+                throw ParseError(code, message, at ?: loc)
+        }
+        val obj = handler.invoke(call, ctx)
+        return Sd2Value.VObject(type = entry.type, value = obj, location = loc)
+    }
+
+    private fun resolveValue(v: Sd2Value): Sd2Value {
+        return when (v) {
+            is Sd2Value.VString,
+            is Sd2Value.VInt,
+            is Sd2Value.VFloat,
+            is Sd2Value.VBool,
+            is Sd2Value.VNull,
+            is Sd2Value.VQualifiedName,
+            is Sd2Value.VForeign,
+            is Sd2Value.VObject -> v
+            is Sd2Value.VTuple -> {
+                if (v.items.isEmpty()) v
+                else Sd2Value.VTuple(v.items.map { resolveValue(it) }, v.location)
+            }
+            is Sd2Value.VList -> {
+                if (v.items.isEmpty()) v
+                else Sd2Value.VList(v.items.map { resolveValue(it) }, v.location)
+            }
+            is Sd2Value.VMap -> {
+                if (v.entries.isEmpty()) v
+                else Sd2Value.VMap(v.entries.mapValues { (_, vv) -> resolveValue(vv) }, v.location)
+            }
+            is Sd2Value.VConstructor -> {
+                attemptResolveConstructor(v.name, args = null, attrs = v.attributes, loc = v.location) ?: v
+            }
+            is Sd2Value.VConstructorTuple -> {
+                attemptResolveConstructor(v.name, args = v.args, attrs = null, loc = v.location) ?: v
+            }
         }
     }
 
