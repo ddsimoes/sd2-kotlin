@@ -257,12 +257,11 @@ Examples:
 ```sd2
 center = (-25.43, -49.27)
 one = (42)
-timeout = duration { seconds = 30 }
 retry = policy { attempts = 3 }
 cache = storage.cache.Redis { host = "localhost" }
 point = Point(10, 20)
 color = RGB(255, 128, 0)
-createdAt = datetime("2024-03-15T14:30:00Z")
+createdAt = instant("2024-03-15T14:30:00Z")
 ```
 
 Constructor bodies (map-constructors) are attribute lists only; namespaces and sub-elements are not permitted within constructors.
@@ -331,6 +330,28 @@ Constructor rules:
 - Constructor can be simple, qualified, or backtick identifier
 - Reserved words cannot be used as constructors (E4004)
 - Interpretation is domain-specific and determined by schema/context
+
+### 4.5 Temporal Constructors
+
+SD2 define um conjunto de construtores temporais padronizados. Implementações devem reconhecê‑los e validar formato e componentes de forma consistente.
+
+- `date(string)` — Data de calendário, formato `YYYY-MM-DD`.
+- `time(string)` — Hora do dia, formato `HH:MM:SS[.SSSSSSSSS]` (fração opcional até 9 dígitos).
+- `instant(string)` — Ponto absoluto no tempo, formato `YYYY-MM-DD'T'HH:MM:SS[.SSSSSSSSS](Z|±HH:MM)` (offset obrigatório).
+- `duration(string)` — Duração absoluta (ISO‑8601 restrita): `P[nD][T[nH][nM][n(.f)S]]`.
+  - Apenas D/H/M/S; `D` = 24 horas (86400s); fração de segundos até 9 dígitos.
+- `period(string)` — Período de calendário (ISO‑8601 restrito): `P[nY][nM][nW][nD]`.
+  - Não aceita `T` nem H/M/S; `W` = 7 dias de calendário.
+
+Regras adicionais:
+- `instant`: offset é obrigatório (usar `Z` para UTC ou `±HH:MM`).
+- `time`/`instant`/`duration`: frações de segundos com no máximo 9 dígitos.
+- `duration`: não permite Y/M(month)/W; requer ao menos um componente (zeros são aceitos, p.ex. `PT0S`).
+- `period`: não permite `T`, H/M/S; requer ao menos um componente (zeros são aceitos, p.ex. `P0D`).
+
+Semântica de D:
+- Em `duration`, `P1D` = exatamente 24 horas (86400s).
+- Em `period`, `P1D` = 1 dia de calendário (pode variar com DST).
 
 ## 5. Body Structure
 
@@ -509,3 +530,8 @@ config {
 - E7001 — Signed hex/binary integers are not allowed
 - E4003 — Whitespace not allowed between constructor and '@' in foreign code
 - E4004 — Reserved word cannot be used as foreign code constructor
+- E3001 — Invalid temporal format
+- E3002 — Empty duration/period (nenhum componente)
+- E3003 — Fractional seconds exceed 9 digits
+- E3004 — Invalid calendar component in duration (Y/M(month)/W)
+- E3005 — Invalid time component in period (T/H/M/S)

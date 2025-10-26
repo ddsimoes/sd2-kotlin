@@ -27,7 +27,8 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                //put your multiplatform dependencies here
+                // Temporals support out-of-the-box
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
             }
         }
         val commonTest by getting {

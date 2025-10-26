@@ -110,30 +110,30 @@ object Sd2Validator {
     private fun validateTemporalConstructor(v: Sd2Value.VConstructorTuple): Sd2Issue? {
         val simpleName = v.name.parts.joinToString(".")
         val lowered = simpleName.lowercase()
-        if (lowered !in setOf("date", "time", "datetime", "duration", "period")) return null
+        if (lowered !in setOf("date", "time", "instant", "duration", "period")) return null
         // Expect at least one string argument
         val first = v.args.firstOrNull()
         val s = (first as? Sd2Value.VString)?.value ?: return Sd2Issue("E3001: invalid temporal format", v.location)
         val reDate = Regex("^\\d{4}-\\d{2}-\\d{2}$")
-        val reTime = Regex("^\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?$")
-        val reDateTime = Regex("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?(Z|[+-]\\d{2}:\\d{2})?$")
+        val reTime = Regex("^\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?$")
+        val reInstant = Regex("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?(Z|[+-]\\d{2}:\\d{2})$")
         val reDuration = Regex("^P(?=.*[YMDTHS]).*") // at least one component
 
         fun fracDigitsOk(): Boolean {
             val m = Regex("\\.(\\d+)").find(s) ?: return true
-            return m.groupValues[1].length <= 3
+            return m.groupValues[1].length <= 9
         }
 
         return when (lowered) {
             "date" -> if (reDate.matches(s)) null else Sd2Issue("E3001: invalid temporal format", v.location)
             "time" -> when {
-                !fracDigitsOk() -> Sd2Issue("E3003: temporal fractions exceed 3 digits", v.location)
+                !fracDigitsOk() -> Sd2Issue("E3003: temporal fractions exceed 9 digits", v.location)
                 reTime.matches(s) -> null
                 else -> Sd2Issue("E3001: invalid temporal format", v.location)
             }
-            "datetime" -> when {
-                !fracDigitsOk() -> Sd2Issue("E3003: temporal fractions exceed 3 digits", v.location)
-                reDateTime.matches(s) -> null
+            "instant" -> when {
+                !fracDigitsOk() -> Sd2Issue("E3003: temporal fractions exceed 9 digits", v.location)
+                reInstant.matches(s) -> null
                 else -> Sd2Issue("E3001: invalid temporal format", v.location)
             }
             "duration", "period" -> if (!reDuration.matches(s)) Sd2Issue("E3002: duration must have at least one component", v.location) else null

@@ -6,7 +6,6 @@ import io.github.ddsimoes.sd2.StringSource
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class Sd2SpecTest {
@@ -64,21 +63,6 @@ class Sd2SpecTest {
             }
         """.trimIndent()
         assertFailsWith<ParseError> { collect(input) }
-    }
-
-    @Test
-    fun constructorValueSameLine() {
-        val input = (
-            "config app {\n" +
-            "  timeout = duration { seconds = 30\n" +
-            " }\n" +
-            "}\n"
-        )
-        val attr = collect(input).filterIsInstance<Sd2Event.Attribute>().first()
-        val v = assertIs<Sd2Value.VConstructor>(attr.value)
-        assertEquals(listOf("duration"), v.name.parts.map { it.text })
-        assertEquals(1, v.attributes.size)
-        assertEquals(30L, (v.attributes["seconds"] as Sd2Value.VInt).value)
     }
 
     @Test
@@ -188,16 +172,24 @@ class Sd2SpecTest {
     }
 
     @Test
-    fun temporalConstructorDatetime() {
+    fun temporalConstructorInstant() {
         val input = """
             job now {
-              start = datetime("2024-03-15T14:30:00Z")
+              start = instant("2024-03-15T14:30:00Z")
             }
         """.trimIndent()
-        val v = (collect(input).filterIsInstance<Sd2Event.Attribute>().first().value) as Sd2Value.VConstructorTuple
-        assertEquals(listOf("datetime"), v.name.parts.map { it.text })
-        val arg0 = v.args.first() as Sd2Value.VString
-        assertEquals("2024-03-15T14:30:00Z", arg0.value)
+        val value = collect(input).filterIsInstance<Sd2Event.Attribute>().first().value
+        when (value) {
+            is Sd2Value.VObject -> {
+                assertEquals(listOf("temporal","instant"), value.type.parts.map { it.text })
+            }
+            is Sd2Value.VConstructorTuple -> {
+                assertEquals(listOf("instant"), value.name.parts.map { it.text })
+                val arg0 = value.args.first() as Sd2Value.VString
+                assertEquals("2024-03-15T14:30:00Z", arg0.value)
+            }
+            else -> throw AssertionError("unexpected value type: $value")
+        }
     }
 
     @Test

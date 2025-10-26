@@ -41,6 +41,30 @@ Constructors
 - Map-constructor (named args): `Name { key = value }`
 - Tuple-constructor (positional args): `Name(1, 2, 3)`
 
+Temporal Constructors
+- SD2 includes standard temporal constructors with validation and consistent parsing across tools and the default Kotlin reader:
+  - `date("YYYY-MM-DD")` — calendar date
+  - `time("HH:MM:SS[.fffffffff]")` — time of day, up to 9 fractional digits
+  - `instant("YYYY-MM-DD'T'HH:MM:SS[.fffffffff](Z|±HH:MM)")` — point in time with required offset
+  - `duration("P[nD][T[nH][nM][n(.f)S]]")` — absolute duration (subset of ISO‑8601)
+  - `period("P[nY][nM][nW][nD]")` — calendar period (no time component)
+
+Examples
+```
+created = date("2025-10-26")
+wakeup  = time("07:30:00.123")
+when    = instant("2025-10-26T12:00:00Z")
+ttl     = duration("PT30S")
+sprint  = period("P2W")
+```
+
+Validator error codes (selected)
+- `E3001` invalid temporal format
+- `E3002` empty duration/period (no components)
+- `E3003` fractional seconds exceed 9 digits
+- `E3004` invalid calendar component in duration
+- `E3005` invalid time component in period
+
 Use cases and examples
 
 - Simple configuration
@@ -98,6 +122,7 @@ Notes
 CLI (tools)
 - Format: `./gradlew :tools:run --args 'format path/file.sd2'`
 - Validate: `./gradlew :tools:run --args 'validate path/file.sd2'`
+  - The validator reports temporal errors like `E3001`, `E3002`, `E3003`, `E3004`, `E3005`.
 
 Library (Kotlin)
 ```
@@ -120,6 +145,46 @@ while (true) {
     else -> {}
   }
 }
+```
+
+Kotlin value materialization
+- By default, the reader resolves known constructors to typed objects (`Sd2Value.VObject`). Temporal constructors resolve to:
+  - `temporal.date` → `kotlinx.datetime.LocalDate`
+  - `temporal.time` → `kotlinx.datetime.LocalTime`
+  - `temporal.instant` → `kotlin.time.Instant`
+  - `temporal.duration` → `kotlin.time.Duration`
+  - `temporal.period` → `kotlinx.datetime.DateTimePeriod`
+
+Inspecting resolved values
+```
+when (val v = attr.value) {
+  is Sd2Value.VObject -> when (v.type.toString()) {
+    "temporal.date"    -> println("date = ${v.value}")
+    "temporal.time"    -> println("time = ${v.value}")
+    "temporal.instant" -> println("instant = ${v.value}")
+    "temporal.duration"-> println("duration = ${v.value}")
+    "temporal.period"  -> println("period = ${v.value}")
+    else -> println("object ${v.type} = ${v.value}")
+  }
+  else -> println(v)
+}
+```
+
+Opting out or customizing
+- To keep constructors raw (no materialization), pass a config with `constructorRegistry = null`:
+```
+val r = Sd2.reader(source, Sd2ReaderConfig(constructorRegistry = null))
+```
+- To register your own constructors:
+```
+val b = ConstructorRegistryBuilder()
+b.register("Point", "geom.Point") { call, ctx ->
+  val (x, y) = call.args
+  val xi = (ctx.resolve(x) as Sd2Value.VInt).value
+  val yi = (ctx.resolve(y) as Sd2Value.VInt).value
+  object { val X = xi; val Y = yi }
+}
+val r = Sd2.reader(source, Sd2ReaderConfig(constructorRegistry = b.build()))
 ```
 
 License

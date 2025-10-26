@@ -89,8 +89,11 @@ data class Annotation(val name: QualifiedName, val argsRaw: String? = null)
 
 // Reader factory
 object Sd2 {
-    fun reader(source: Sd2Source, config: Sd2ReaderConfig = Sd2ReaderConfig()): Sd2Reader =
-        Sd2StreamReader(source, config)
+    fun reader(
+        source: Sd2Source,
+        // Out-of-the-box temporals: default config uses the default temporal registry
+        config: Sd2ReaderConfig = Sd2ReaderConfig(constructorRegistry = DefaultTemporalRegistry.instance)
+    ): Sd2Reader = Sd2StreamReader(source, config)
 }
 
 // -------- Constructor Registry API --------

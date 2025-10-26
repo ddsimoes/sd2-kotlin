@@ -274,6 +274,11 @@ internal class Sd2StreamReader(
         loc: Location,
     ): Sd2Value? {
         val reg = config.constructorRegistry ?: return null
+        // Do not resolve built-in temporals when provided as attribute-body constructors; keep raw
+        if (attrs != null) {
+            val simple = name.parts.joinToString(".").lowercase()
+            if (simple in setOf("date", "time", "datetime", "instant", "duration", "period")) return null
+        }
         val entry = reg.handlerFor(name)
         if (entry == null) {
             return when (config.unknownConstructorPolicy) {

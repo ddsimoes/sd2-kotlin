@@ -10,7 +10,8 @@ object Sd2Formatter {
     fun format(input: String): String = format(StringSource(input))
 
     fun format(source: Sd2Source): String {
-        val r = Sd2.reader(source)
+        // Use parser without constructor resolution to preserve original literals on formatting
+        val r = Sd2.reader(source, Sd2ReaderConfig(constructorRegistry = null))
         val out = StringBuilder()
         var indent = 0
 
@@ -86,6 +87,7 @@ object Sd2Formatter {
                 append('(').append(inner).append(')')
             }
             is Sd2Value.VConstructorTuple -> v.args.joinToString(prefix = "${printQName(v.name)}(", postfix = ")", separator = ", ") { printValue(it) }
+            is Sd2Value.VObject -> v.value.toString()
         }
 
         fun printAnnotations(anns: List<Annotation>) {

@@ -92,8 +92,8 @@ class ToolsTest {
     fun temporalValidation() {
         val bad = """
             t x {
-              a = datetime("2024-03-15T10:00:00.1234")
-              b = datetime("2024-03-15X10:00:00")
+              a = instant("2024-03-15T10:00:00.1234567890Z")
+              b = instant("2024-03-15X10:00:00Z")
             }
         """.trimIndent()
         val issues = Sd2Validator.validateAll(bad)
