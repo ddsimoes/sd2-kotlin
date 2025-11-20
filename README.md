@@ -2,9 +2,16 @@
 
 Status: DRAFT / alpha. The format and tooling may change.
 
-This repository contains a Kotlin parser and small tools for the SD2 data format. The goal is a readable, minimal syntax to describe structured data.
+This repository contains a Kotlin parser and small tools for the SD2 data format. The goal is a readable, minimal syntax to describe structured data and small domain-specific configurations.
 
-For the full specification see `sd2-spec.md`. This README focuses on the core format with simple examples.
+Why SD2?
+- Context-free grammar with explicit structure (no indentation rules, no schema-dependent parsing).
+- Small but expressive value model: primitives, lists/maps, tuples, constructors, temporal types.
+- First-class support for foreign code blocks and type-tagged constructors (`sql@`, `sh@`, `regex@`).
+- Tabular arrays for compact, in-document tables.
+
+For a deeper discussion of motivation and trade-offs, see [WHY.md](WHY.md).  
+For the full specification see [sd2-spec.md](sd2-spec.md). This README focuses on the core format with simple examples.
 
 Basics
 - A document is a sequence of elements.
@@ -65,9 +72,9 @@ Validator error codes (selected)
 - `E3004` invalid calendar component in duration
 - `E3005` invalid time component in period
 
-Use cases and examples
+When to use SD2 (examples)
 
-- Simple configuration
+- Service / app configuration
   ```
   app config {
     host = "localhost"
@@ -77,7 +84,7 @@ Use cases and examples
   }
   ```
 
-- Docker Compose like
+- Docker Compose-like
   ```
   compose app {
     version = "3.9"
@@ -88,7 +95,7 @@ Use cases and examples
   }
   ```
 
-- Kubernetes like
+- Kubernetes-like
   ```
   deploy api {
     replicas = 2
@@ -99,7 +106,7 @@ Use cases and examples
   }
   ```
 
-- Terraform like
+- Terraform-like infra descriptors
   ```
   resource bucket {
     versioning {
@@ -213,7 +220,7 @@ val r = Sd2.reader(source, Sd2ReaderConfig(constructorRegistry = b.build()))
 ```
 
 License
-- See `LICENSE`.
+- See [LICENSE](LICENSE).
 
 Advanced Features
 - The following features are considered advanced and typically matter for extensible formats (e.g., plugin ecosystems). They are supported by the parser and tools but are not required for simple usage.
