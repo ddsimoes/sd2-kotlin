@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-SD2 (Structured Data Description Language v2) is a context-free, declarative language for describing structured data and domain-specific languages. It serves as a meta-format like XML, JSON, and YAML.
+SD2 (Structured Data Description Language) is a context-free, declarative language for describing structured data and domain-specific languages. It serves as a meta-format like XML, JSON, and YAML.
 
 Design Goals:
 - Context-free parsing without schema information
