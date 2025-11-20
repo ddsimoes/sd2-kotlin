@@ -241,7 +241,102 @@ Map key guidelines:
 - Use `["null"]` for a string key containing "null"
 - Reserved words as keys must use bracket notation
 
-### 4.3 Tuples and Constructors
+### 4.3 Tabular Arrays (Compact Rows)
+
+Tabular arrays are syntax sugar for lists of uniform rows. They come in three forms and always desugar to existing SD2 values (lists, maps, and constructors).
+
+#### 4.3.1 Ad-hoc Maps
+
+```sd2
+codedValues = {(name, code)} [
+    ("Not informed", 0),
+    ("Active", 1),
+    ("Inactive", 2),
+]
+```
+
+Desugars to:
+```sd2
+codedValues = [
+    {name = "Not informed", code = 0},
+    {name = "Active",       code = 1},
+    {name = "Inactive",     code = 2},
+]
+```
+
+Schema rules (E8001 — invalid tabular map schema):
+- Field list must contain only simple identifiers (no backticks)
+- At least one field is required
+- No duplicate field names
+
+#### 4.3.2 Typed Positional (Tuple-Constructor)
+
+```sd2
+points = Point(_, _) [
+    (10, 20),
+    (30, 40),
+]
+```
+
+Desugars to:
+```sd2
+points = [
+    Point(10, 20),
+    Point(30, 40),
+]
+```
+
+Schema rules (E8002 — invalid tabular positional schema):
+- Constructor name must be a valid qualified name
+- All schema parameters must be `_` (underscore placeholders)
+- At least one placeholder is required
+
+#### 4.3.3 Typed Named (Map-Constructor)
+
+```sd2
+codedValues = CodedValue {(name, code)} [
+    ("Not informed", 0),
+    ("Active", 1),
+]
+```
+
+Desugars to:
+```sd2
+codedValues = [
+    CodedValue {name = "Not informed", code = 0},
+    CodedValue {name = "Active",       code = 1},
+]
+```
+
+Schema rules (E8003 — invalid tabular named schema):
+- Constructor name must be a valid qualified name
+- Field list must contain only simple identifiers (no backticks)
+- At least one field is required
+- No duplicate field names
+
+#### 4.3.4 Rows and Layout
+
+Rows are always tuples:
+```sd2
+values = {(name, code)} [
+    ("A", 1),
+    ("B", 2),
+]
+```
+
+Row rules:
+- Each row must be a tuple (E8005)
+- The number of values in each row must match the schema arity (E8004)
+- Trailing commas are allowed between rows and inside tuples
+- Empty arrays are allowed: `{(name, code)} []`, `Point(_, _) []`, `CodedValue {(name, code)} []`
+
+Layout rule:
+- The opening `[` of a tabular array must be on the same physical line as the schema; placing `[` on the next line is an error (E1006)
+
+Semantics:
+- Tabular arrays are pure syntax sugar; implementations treat them as if they had been rewritten to lists plus maps/constructors as shown above.
+
+### 4.4 Tuples and Constructors
 
 - Tuple literal: `(v1, v2, ..., vn)` with `n ≥ 0`
   - Single-element tuples can be written as `(x)`; trailing comma is optional
@@ -266,7 +361,7 @@ createdAt = instant("2024-03-15T14:30:00Z")
 
 Constructor bodies (map-constructors) are attribute lists only; namespaces and sub-elements are not permitted within constructors.
 
-### 4.4 Foreign Code
+### 4.5 Foreign Code
 
 ```sd2
 regex = @'^\d{4}-\d{2}-\d{2}$'
@@ -331,7 +426,7 @@ Constructor rules:
 - Reserved words cannot be used as constructors (E4004)
 - Interpretation is domain-specific and determined by schema/context
 
-### 4.5 Temporal Constructors
+### 4.6 Temporal Constructors
 
 SD2 define um conjunto de construtores temporais padronizados. Implementações devem reconhecê‑los e validar formato e componentes de forma consistente.
 
@@ -464,7 +559,7 @@ namespace       = "." simple_ident body ;
 attribute       = identifier "=" value NEWLINE ;
 
 value           = primitive | list | map | tuple | constructor_map | constructor_tuple |
-                  foreign_code | qualified_name ;
+                  tabular_array | foreign_code | qualified_name ;
 
 primitive       = number | boolean | string | null_literal ;
 null_literal    = "null" ;
@@ -476,6 +571,12 @@ list            = "[" [ value { "," value } [ "," ] ] "]" ;
 map             = "{" [ map_entry { "," map_entry } [ "," ] ] "}" ;
 map_entry       = map_key "=" value ;
 map_key         = identifier | string | "[" primitive "]" ;
+
+tabular_array   = tabular_schema "[" [ tabular_row { "," tabular_row } [ "," ] ] "]" ;
+tabular_schema  = "{" "(" identifier { "," identifier } ")" "}"          (* ad-hoc maps *)
+                | qualified_name "(" "_" { "," "_" } ")"                 (* typed positional *)
+                | qualified_name "{" "(" identifier { "," identifier } ")" "}" ; (* typed named *)
+tabular_row     = "(" [ value { "," value } [ "," ] ] ")" ;
 
 constructor_map   = qualified_name body ;
 constructor_tuple = qualified_name "(" [ value { "," value } [ "," ] ] ")" ;
@@ -521,6 +622,7 @@ config {
 - E1002 — Line continuation '|' must be in column 1 immediately after NEWLINE
 - E1004 — Line continuation '|' used outside qualifier context
 - E1005 — '(' of a tuple-constructor must be on the same line as its name
+- E1006 — '[' of a tabular array must be on the same line as its schema
 - E2001 — Duplicate attribute in the same scope
 - E2002 — Attribute after namespace/sub-element
 - E2003 — Duplicate key in map literal
@@ -535,3 +637,8 @@ config {
 - E3003 — Fractional seconds exceed 9 digits
 - E3004 — Invalid calendar component in duration (Y/M(month)/W)
 - E3005 — Invalid time component in period (T/H/M/S)
+- E8001 — Invalid tabular map schema
+- E8002 — Invalid tabular positional schema
+- E8003 — Invalid tabular named schema
+- E8004 — Tabular row arity mismatch
+- E8005 — Tabular row must be tuple

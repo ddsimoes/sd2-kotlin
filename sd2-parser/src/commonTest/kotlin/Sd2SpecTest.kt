@@ -334,4 +334,180 @@ class Sd2SpecTest {
         """.trimIndent()
         assertFailsWith<ParseError> { collect(input) }
     }
+
+    // ---- Tabular array syntax ----
+
+    @Test
+    fun tabularAdHocMapsDesugarToListOfMaps() {
+        val input = """
+            domain statusDomain {
+              codedValues = {(name, code)} [
+                ("Not informed", 0),
+                ("Active", 1),
+                ("Inactive", 2),
+              ]
+            }
+        """.trimIndent()
+        val attrs = collect(input).filterIsInstance<Sd2Event.Attribute>()
+        val coded = attrs.first { it.name.text == "codedValues" }.value as Sd2Value.VList
+        assertEquals(3, coded.items.size)
+        val first = coded.items[0] as Sd2Value.VMap
+        assertEquals("Not informed", (first.entries["name"] as Sd2Value.VString).value)
+        assertEquals(0L, (first.entries["code"] as Sd2Value.VInt).value)
+    }
+
+    @Test
+    fun tabularTypedPositionalProducesListOfConstructorTuples() {
+        val input = """
+            map demo {
+              markers = Point(_, _) [
+                (10, 20),
+                (30, 40),
+              ]
+            }
+        """.trimIndent()
+        val attrs = collect(input).filterIsInstance<Sd2Event.Attribute>()
+        val markers = attrs.first { it.name.text == "markers" }.value as Sd2Value.VList
+        assertEquals(2, markers.items.size)
+        val first = markers.items[0] as Sd2Value.VConstructorTuple
+        assertEquals(listOf("Point"), first.name.parts.map { it.text })
+        assertEquals(listOf(10L, 20L), first.args.map { (it as Sd2Value.VInt).value })
+    }
+
+    @Test
+    fun tabularTypedNamedProducesListOfConstructors() {
+        val input = """
+            domain statusDomain {
+              codedValues = CodedValue {(name, code)} [
+                ("Not informed", 0),
+                ("Active", 1),
+              ]
+            }
+        """.trimIndent()
+        val attrs = collect(input).filterIsInstance<Sd2Event.Attribute>()
+        val coded = attrs.first { it.name.text == "codedValues" }.value as Sd2Value.VList
+        assertEquals(2, coded.items.size)
+        val first = coded.items[0] as Sd2Value.VConstructor
+        assertEquals(listOf("CodedValue"), first.name.parts.map { it.text })
+        assertEquals("Not informed", (first.attributes["name"] as Sd2Value.VString).value)
+        assertEquals(0L, (first.attributes["code"] as Sd2Value.VInt).value)
+    }
+
+    @Test
+    fun tabularBracketMustBeOnSameLineAsSchema() {
+        val input = """
+            data X {
+              values = {(name, code)}
+              [
+                ("A", 1)
+              ]
+            }
+        """.trimIndent()
+        val ex = assertFailsWith<ParseError> { collect(input) }
+        assertEquals("E1006", ex.code)
+    }
+
+    @Test
+    fun tabularRowArityMismatchIsError() {
+        val input = """
+            data X {
+              values = {(name, code)} [
+                ("A", 1, true)
+              ]
+            }
+        """.trimIndent()
+        val ex = assertFailsWith<ParseError> { collect(input) }
+        assertEquals("E8004", ex.code)
+    }
+
+    @Test
+    fun tabularRowMustBeTupleIsError() {
+        val input = """
+            data X {
+              values = {(name, code)} [
+                "invalid"
+              ]
+            }
+        """.trimIndent()
+        val ex = assertFailsWith<ParseError> { collect(input) }
+        assertEquals("E8005", ex.code)
+    }
+
+    @Test
+    fun invalidTabularPositionalSchemaIsError() {
+        val input = """
+            data X {
+              points = Point() [
+                (1, 2)
+              ]
+            }
+        """.trimIndent()
+        val ex = assertFailsWith<ParseError> { collect(input) }
+        assertEquals("E8002", ex.code)
+    }
+
+    @Test
+    fun mixedTabularPositionalSchemaIsError() {
+        val input = """
+            data X {
+              points = Point(1, _) [
+                (1, 2)
+              ]
+            }
+        """.trimIndent()
+        val ex = assertFailsWith<ParseError> { collect(input) }
+        assertEquals("E8002", ex.code)
+    }
+
+    @Test
+    fun namedTabularSchemaDuplicateFieldIsError() {
+        val input = """
+            data X {
+              values = CodedValue {(name, code, name)} [
+                ("A", 1, 2)
+              ]
+            }
+        """.trimIndent()
+        val ex = assertFailsWith<ParseError> { collect(input) }
+        assertEquals("E8003", ex.code)
+    }
+
+    @Test
+    fun namedTabularSchemaEmptyIsError() {
+        val input = """
+            data X {
+              values = CodedValue {()} [
+                ()
+              ]
+            }
+        """.trimIndent()
+        val ex = assertFailsWith<ParseError> { collect(input) }
+        assertEquals("E8003", ex.code)
+    }
+
+    @Test
+    fun adHocTabularSchemaDuplicateFieldIsError() {
+        val input = """
+            data X {
+              values = {(id, name, id)} [
+                (1, "A", 2)
+              ]
+            }
+        """.trimIndent()
+        val ex = assertFailsWith<ParseError> { collect(input) }
+        assertEquals("E8001", ex.code)
+    }
+
+    @Test
+    fun adHocTabularSchemaEmptyIsError() {
+        val input = """
+            data X {
+              values = {()} [
+                ()
+              ]
+            }
+        """.trimIndent()
+        val ex = assertFailsWith<ParseError> { collect(input) }
+        assertEquals("E8001", ex.code)
+    }
 }

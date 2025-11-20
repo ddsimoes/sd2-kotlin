@@ -115,6 +115,31 @@ Foreign Code (simple)
 - Single-line: `pattern = @'^\d+$'`
 - Double-quoted: `query = @"SELECT 1"`
 
+Tabular arrays (compact rows)
+- Ad-hoc maps:
+  ```
+  codedValues = {(name, code)} [
+    ("Not informed", 0),
+    ("Active", 1),
+    ("Inactive", 2),
+  ]
+  ```
+  This is syntax sugar for a list of map literals with keys `name` and `code`.
+
+- Typed positional / named:
+  ```
+  points = Point(_, _) [
+    (10, 20),
+    (30, 40),
+  ]
+
+  codedValues = CodedValue {(name, code)} [
+    ("Not informed", 0),
+    ("Active", 1),
+  ]
+  ```
+  These are sugar for `List<Point(...)>` and `List<CodedValue { ... }>` respectively.
+
 Notes
 - Bodies and constructor delimiters (`{`, `(`) must be on the same line as the preceding name.
 - Map entries must be comma-separated; lists and maps accept a trailing comma.

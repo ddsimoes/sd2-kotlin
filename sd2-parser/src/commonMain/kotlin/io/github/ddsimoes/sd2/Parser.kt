@@ -248,11 +248,78 @@ internal class Sd2StreamReader(
                 if (peek().kind == TKind.NEWLINE && lookaheadKind(1) == TKind.LPAREN) {
                     throw ParseError("E1005", "'(' of tuple-constructor must be on the same line as its name", peek().loc)
                 }
+                // Typed positional tabular schema: Name(_, ...) [ ... ]
+                if (peek().kind == TKind.LPAREN) {
+                    // Look ahead to find matching ')' and check if a '[' follows on the same line
+                    var depth = 0
+                    var idx = 0
+                    var closingIndex: Int? = null
+                    while (true) {
+                        idx += 1
+                        val tok = lookaheadToken(idx) ?: break
+                        when (tok.kind) {
+                            TKind.LPAREN -> depth += 1
+                            TKind.RPAREN -> {
+                                if (depth == 0) {
+                                    closingIndex = idx
+                                    break
+                                } else {
+                                    depth -= 1
+                                }
+                            }
+                            TKind.EOF -> break
+                            else -> {}
+                        }
+                    }
+                    if (closingIndex != null) {
+                        val after = lookaheadToken(closingIndex + 1)
+                        val nextKind = if (after?.kind == TKind.NEWLINE) lookaheadKind(closingIndex + 2) else after?.kind
+                        if (after?.kind == TKind.NEWLINE && nextKind == TKind.LBRACK) {
+                            throw ParseError("E1006", "'[' of tabular array must be on same line as schema", after.loc)
+                        }
+                        if (nextKind == TKind.LBRACK) {
+                            // This is a tabular positional schema; now parse it properly with validation
+                            val arity = parseTabularPositionalSchema()
+                            val (listLoc, rows) = parseTabularRows(arity)
+                            val items = rows.map { row ->
+                                val resolved = attemptResolveConstructor(qn, args = row, attrs = null, loc = startLoc)
+                                resolved ?: Sd2Value.VConstructorTuple(qn, row, startLoc)
+                            }
+                            return Sd2Value.VList(items, listLoc)
+                        }
+                    }
+                }
                 if (peek().kind == TKind.LBRACE) {
-                    val attrs = parseConstructorBody()
-                    // Try constructor resolution when registry present
-                    val resolved = attemptResolveConstructor(qn, args = null, attrs = attrs, loc = startLoc)
-                    return resolved ?: Sd2Value.VConstructor(qn, attrs, startLoc)
+                    // Distinguish between typed named tabular schema and regular constructor body
+                    val braceTok = expect(TKind.LBRACE, "expected '{' after constructor name")
+                    skipNewlines()
+                    if (peek().kind == TKind.LPAREN) {
+                        // Typed named tabular schema: Name {(field1, field2, ...)} [ ... ]
+                        val fieldNames = parseTabularSchemaFieldList(
+                            kindLabel = "tabular named schema",
+                            errorCode = "E8003",
+                        )
+                        skipNewlines()
+                        expect(TKind.RBRACE, "expected '}' to close tabular schema")
+                        if (peek().kind == TKind.NEWLINE && lookaheadKind(1) == TKind.LBRACK) {
+                            throw ParseError("E1006", "'[' of tabular array must be on same line as schema", peek().loc)
+                        }
+                        val (listLoc, rows) = parseTabularRows(fieldNames.size)
+                        val items = rows.map { row ->
+                            val attrs = linkedMapOf<String, Sd2Value>()
+                            fieldNames.forEachIndexed { idx, (name, _) ->
+                                attrs[name] = row[idx]
+                            }
+                            val resolved = attemptResolveConstructor(qn, args = null, attrs = attrs, loc = startLoc)
+                            resolved ?: Sd2Value.VConstructor(qn, attrs, startLoc)
+                        }
+                        return Sd2Value.VList(items, listLoc)
+                    } else {
+                        // Regular constructor body
+                        val attrs = parseConstructorBodyAfterLBrace(braceTok)
+                        val resolved = attemptResolveConstructor(qn, args = null, attrs = attrs, loc = startLoc)
+                        return resolved ?: Sd2Value.VConstructor(qn, attrs, startLoc)
+                    }
                 }
                 if (peek().kind == TKind.LPAREN) {
                     val args = parseTupleLikeArguments()
@@ -402,10 +469,33 @@ internal class Sd2StreamReader(
         return Sd2Value.VList(items, ltok.loc)
     }
 
-    private fun parseMap(): Sd2Value.VMap {
+    private fun parseMap(): Sd2Value {
         val mtok = expect(TKind.LBRACE, "expected '{' for map")
-        val entries = linkedMapOf<String, Sd2Value>()
         skipNewlines()
+
+        // Ad-hoc tabular schema: {(field1, field2, ...)} [ ... ]
+        if (peek().kind == TKind.LPAREN) {
+            val fieldNames = parseTabularSchemaFieldList(
+                kindLabel = "tabular map schema",
+                errorCode = "E8001",
+            )
+            skipNewlines()
+            expect(TKind.RBRACE, "expected '}' to close tabular schema")
+            if (peek().kind == TKind.NEWLINE && lookaheadKind(1) == TKind.LBRACK) {
+                throw ParseError("E1006", "'[' of tabular array must be on same line as schema", peek().loc)
+            }
+            val (listLoc, rows) = parseTabularRows(fieldNames.size)
+            val items = rows.map { row ->
+                val entries = linkedMapOf<String, Sd2Value>()
+                fieldNames.forEachIndexed { idx, (name, _) ->
+                    entries[name] = row[idx]
+                }
+                Sd2Value.VMap(entries, listLoc)
+            }
+            return Sd2Value.VList(items, listLoc)
+        }
+
+        val entries = linkedMapOf<String, Sd2Value>()
         // Empty map
         if (peek().kind == TKind.RBRACE) {
             expect(TKind.RBRACE, "expected '}' to close map")
@@ -462,7 +552,11 @@ internal class Sd2StreamReader(
     }
 
     private fun parseConstructorBody(): Map<String, Sd2Value> {
-        expect(TKind.LBRACE, "expected '{' to start constructor body")
+        val brace = expect(TKind.LBRACE, "expected '{' to start constructor body")
+        return parseConstructorBodyAfterLBrace(brace)
+    }
+
+    private fun parseConstructorBodyAfterLBrace(@Suppress("UNUSED_PARAMETER") braceTok: Token): Map<String, Sd2Value> {
         val attrs = linkedMapOf<String, Sd2Value>()
         while (true) {
             when (peek().kind) {
@@ -479,6 +573,132 @@ internal class Sd2StreamReader(
                 else -> throw error("unexpected token in constructor body")
             }
         }
+    }
+
+    // ---- Tabular array helpers ----
+
+    private fun parseTabularSchemaFieldList(kindLabel: String, errorCode: String): List<Pair<String, Location>> {
+        fun invalid(loc: Location, detail: String): Nothing =
+            throw ParseError(errorCode, "invalid $kindLabel: $detail", loc)
+
+        expect(TKind.LPAREN, "expected '(' to start $kindLabel")
+        val fields = mutableListOf<Pair<String, Location>>()
+        skipNewlines()
+        if (peek().kind == TKind.RPAREN) {
+            invalid(peek().loc, "expected at least one field")
+        }
+
+        fun readField() {
+            when (peek().kind) {
+                TKind.IDENT -> {
+                    val tok = consume()
+                    val name = tok.text
+                    if (fields.any { it.first == name }) {
+                        invalid(tok.loc, "duplicate field '$name'")
+                    }
+                    fields += name to tok.loc
+                }
+                TKind.BACKTICK_IDENT -> {
+                    val tok = consume()
+                    invalid(tok.loc, "backtick identifiers are not allowed")
+                }
+                else -> {
+                    val tok = consume()
+                    invalid(tok.loc, "expected identifier, found '${tok.text}'")
+                }
+            }
+        }
+
+        readField()
+        skipNewlines()
+        while (peek().kind == TKind.COMMA) {
+            consume()
+            skipNewlines()
+            if (peek().kind == TKind.RPAREN) {
+                invalid(peek().loc, "expected field name after ','")
+            }
+            readField()
+            skipNewlines()
+        }
+        expect(TKind.RPAREN, "expected ')' to close $kindLabel")
+        return fields
+    }
+
+    private fun parseTabularPositionalSchema(): Int {
+        fun invalid(loc: Location, detail: String): Nothing =
+            throw ParseError("E8002", "invalid tabular positional schema: $detail", loc)
+
+        val lparen = expect(TKind.LPAREN, "expected '(' for tabular positional schema")
+        skipNewlines()
+        if (peek().kind == TKind.RPAREN) {
+            invalid(lparen.loc, "expected at least one placeholder")
+        }
+
+        var count = 0
+        fun readPlaceholder() {
+            when (peek().kind) {
+                TKind.IDENT -> {
+                    val tok = consume()
+                    if (tok.text != "_") invalid(tok.loc, "expected '_' placeholder")
+                    count += 1
+                }
+                else -> {
+                    val tok = consume()
+                    invalid(tok.loc, "expected '_' placeholder")
+                }
+            }
+        }
+
+        readPlaceholder()
+        skipNewlines()
+        while (peek().kind == TKind.COMMA) {
+            consume()
+            skipNewlines()
+            if (peek().kind == TKind.RPAREN) {
+                invalid(peek().loc, "expected placeholder after ','")
+            }
+            readPlaceholder()
+            skipNewlines()
+        }
+        expect(TKind.RPAREN, "expected ')' to close tabular positional schema")
+        return count
+    }
+
+    private fun parseTabularRows(expectedArity: Int): Pair<Location, List<List<Sd2Value>>> {
+        val ltok = expect(TKind.LBRACK, "expected '[' to start tabular array")
+        val rows = mutableListOf<List<Sd2Value>>()
+        skipNewlines()
+        if (peek().kind != TKind.RBRACK) {
+            rows += parseTabularRow(expectedArity)
+            skipNewlines()
+            while (peek().kind == TKind.COMMA) {
+                consume()
+                skipNewlines()
+                if (peek().kind == TKind.RBRACK) break // trailing comma
+                rows += parseTabularRow(expectedArity)
+                skipNewlines()
+            }
+        }
+        skipNewlines()
+        expect(TKind.RBRACK, "expected ']' to close tabular array")
+        return ltok.loc to rows
+    }
+
+    private fun parseTabularRow(expectedArity: Int): List<Sd2Value> {
+        if (peek().kind != TKind.LPAREN) {
+            val t = peek()
+            throw ParseError("E8005", "expected tuple row in tabular array", t.loc)
+        }
+        val tuple = parseTupleLiteral()
+        val arity = tuple.items.size
+        if (arity != expectedArity) {
+            throw ParseError(
+                "E8004",
+                "tabular row has $arity values but schema declares $expectedArity",
+                tuple.location,
+            )
+        }
+        return tuple.items
     }
 
     private fun parseAnnotation(document: Boolean): Annotation {
