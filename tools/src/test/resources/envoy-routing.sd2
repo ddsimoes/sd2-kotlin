@@ -1,4 +1,4 @@
-#![sample("envoy-nginx-traefik")]
+##[sample("envoy-nginx-traefik")]
 
 gateway edge {
   route api {

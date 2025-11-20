@@ -24,7 +24,7 @@ class Sd2SpecTest {
     @Test
     fun documentAndElementAnnotations() {
         val input = """
-            #![version("0.7")]
+            ##[version("0.7")]
             #[deprecated(reason = "use v2")]
             api users {
               ok = true

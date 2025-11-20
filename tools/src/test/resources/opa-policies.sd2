@@ -1,4 +1,4 @@
-#![sample("opa-gatekeeper")]
+##[sample("opa-gatekeeper")]
 
 policy require_owner_label {
   target = "admission.k8s.gatekeeper.sh"
@@ -13,4 +13,3 @@ policy require_owner_label {
     }
   '''
 }
-

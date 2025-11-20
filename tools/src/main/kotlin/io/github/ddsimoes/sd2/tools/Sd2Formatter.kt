@@ -106,7 +106,7 @@ object Sd2Formatter {
                 is Sd2Event.StartDocument -> {}
                 is Sd2Event.EndDocument -> break
                 is Sd2Event.DocumentAnnotation -> {
-                    ind(); out.append("#!["); out.append(printQName(e.name));
+                    ind(); out.append("##["); out.append(printQName(e.name));
                     if (e.argsRaw != null) { out.append('(').append(e.argsRaw).append(')') }
                     out.append("]"); nl()
                 }

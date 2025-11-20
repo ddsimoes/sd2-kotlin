@@ -76,7 +76,7 @@ class Sd2FixesTest {
     fun documentAnnotationOnlyAtTop() {
         val input = """
             api x {}
-            #![version("0.7")]
+            ##[version("0.7")]
         """.trimIndent()
         assertFailsWith<ParseError> { collect(input) }
     }

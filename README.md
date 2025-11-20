@@ -197,7 +197,7 @@ Advanced Features
   - Document and element annotations add metadata to elements or the whole file.
   - Example:
     ```
-    #![version("0.8")]
+    ##[version("0.8")]
     
     #[deprecated]
     service api { }

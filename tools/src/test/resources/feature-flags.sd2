@@ -1,4 +1,4 @@
-#![sample("feature-flags")]
+##[sample("feature-flags")]
 
 flags shop {
   flag newCheckout {

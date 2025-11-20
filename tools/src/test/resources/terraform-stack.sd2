@@ -1,4 +1,4 @@
-#![sample("terraform")]
+##[sample("terraform")]
 
 stack infra {
   provider aws {

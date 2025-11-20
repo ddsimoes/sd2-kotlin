@@ -1,4 +1,4 @@
-#![sample("airflow")]
+##[sample("airflow")]
 
 dag etl_daily {
   schedule = "0 6 * * *"

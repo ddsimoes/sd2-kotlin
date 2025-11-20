@@ -1,4 +1,4 @@
-#![sample("kafka")]
+##[sample("kafka")]
 
 kafka cluster {
   topic orders {

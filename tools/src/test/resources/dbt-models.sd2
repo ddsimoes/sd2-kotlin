@@ -1,4 +1,4 @@
-#![sample("dbt")]
+##[sample("dbt")]
 
 project analytics {
   model users {
@@ -20,4 +20,3 @@ project analytics {
 
   test users_not_null { column = "id" }
 }
-

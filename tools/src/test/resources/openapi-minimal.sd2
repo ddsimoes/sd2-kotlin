@@ -1,4 +1,4 @@
-#![sample("openapi")]
+##[sample("openapi")]
 
 api users {
   title = "Users API"

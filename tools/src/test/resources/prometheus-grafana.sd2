@@ -1,4 +1,4 @@
-#![sample("prometheus-grafana")]
+##[sample("prometheus-grafana")]
 
 monitoring stack {
   alert highErrorRate {

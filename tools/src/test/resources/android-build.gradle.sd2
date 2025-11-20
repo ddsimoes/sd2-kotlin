@@ -1,6 +1,6 @@
-#![plugin("com.android.application")]
-#![plugin("com.android.kotlin")]
-#![plugin("org.jetbrains.compose")]
+##[plugin("com.android.application")]
+##[plugin("com.android.kotlin")]
+##[plugin("org.jetbrains.compose")]
 
 
 project myapp : com.android.AndroidApplication {

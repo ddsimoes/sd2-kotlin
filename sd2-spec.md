@@ -426,11 +426,11 @@ api users : RestAPI { }
 ### 6.2 Document Annotations
 
 ```sd2
-#![version("0.8")]
-#![plugin("org.jetbrains.compose")]
+##[version("0.8")]
+##[plugin("org.jetbrains.compose")]
 ```
 
-Placement: Document annotations (`#![...]`) are only permitted at the top of the document, before the first element.
+Placement: Document annotations (`##[...]`) are only permitted at the top of the document, before the first element.
 
 ## 7. Grammar (EBNF)
 
@@ -483,7 +483,7 @@ constructor_tuple = qualified_name "(" [ value { "," value } [ "," ] ] ")" ;
 foreign_code    = [ identifier ] "@" at_delim content at_close ;
 
 annotation      = "#[" qualified_name [ paren_args ] "]" ;
-doc_annotation  = "#![" qualified_name [ paren_args ] "]" ;
+doc_annotation  = "##[" qualified_name [ paren_args ] "]" ;
 paren_args      = "(" { ANY_TOKEN - ")" } ")" ;
 ```
 

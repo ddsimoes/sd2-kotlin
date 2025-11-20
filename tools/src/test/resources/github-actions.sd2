@@ -1,4 +1,4 @@
-#![sample("github-actions")]
+##[sample("github-actions")]
 
 workflow build_and_test {
   name = "CI"
@@ -31,4 +31,3 @@ workflow build_and_test {
     steps = [ { name = "Lint", run = @'npm run lint' } ]
   }
 }
-

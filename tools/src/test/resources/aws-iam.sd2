@@ -1,4 +1,4 @@
-#![sample("aws-iam")]
+##[sample("aws-iam")]
 
 iam account {
   role appRole {
@@ -17,4 +17,3 @@ iam account {
     }
   }
 }
-

@@ -38,7 +38,8 @@ internal class Sd2StreamReader(
 
                 // Handle annotations
                 if (scopes.lastOrNull() != Scope.BODY) {
-                    if (peek().kind == TKind.HASH && lookaheadKind(1) == TKind.BANG) {
+                    // Document annotation now starts with '##['
+                    if (peek().kind == TKind.HASH && lookaheadKind(1) == TKind.HASH) {
                         if (!docPhase) throw ParseError("E1000", "document annotations are only allowed at the top of the document", peek().loc)
                         val ann = parseAnnotation(document = true)
                         return Sd2Event.DocumentAnnotation(ann.name, ann.argsRaw, location())
@@ -482,8 +483,15 @@ internal class Sd2StreamReader(
 
     private fun parseAnnotation(document: Boolean): Annotation {
         expect(TKind.HASH, "expected '#' for annotation")
-        if (document) expect(TKind.BANG, "expected '!' in document annotation") else if (peek().kind == TKind.BANG) throw ParseError("E1000", "unexpected '!' in element annotation", peek().loc)
-        expect(TKind.LBRACK, "expected '[' after # or #!")
+        if (document) {
+            // Document annotation is '##['
+            expect(TKind.HASH, "expected second '#' in document annotation (use '##[')")
+        } else {
+            // Element annotations must not use '#!' or '##'
+            if (peek().kind == TKind.BANG) throw ParseError("E1000", "unexpected '!' in element annotation", peek().loc)
+            if (peek().kind == TKind.HASH) throw ParseError("E1000", "unexpected '##' in element annotation; use '#['", peek().loc)
+        }
+        expect(TKind.LBRACK, "expected '[' after # or ##")
         val name = parseQualifiedName()
         // Optional args in parentheses – capture raw text
         var argsRaw: String? = null

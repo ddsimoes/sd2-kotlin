@@ -1,4 +1,4 @@
-#![sample("monorepo-build")]
+##[sample("monorepo-build")]
 
 repo app {
   module core {

@@ -149,7 +149,7 @@ class Sd2BasicTest {
     @Test
     fun annotations() {
         val input = """
-            #![feature.experimental]
+            ##[feature.experimental]
             #[ui.test]
             widget Button {
               ok = true

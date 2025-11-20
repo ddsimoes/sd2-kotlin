@@ -1,4 +1,4 @@
-#![sample("vault")]
+##[sample("vault")]
 
 vault setup {
   // Enable Kubernetes auth
