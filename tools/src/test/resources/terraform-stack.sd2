@@ -1,5 +1,3 @@
-##[sample("terraform")]
-
 stack infra {
   provider aws {
     region = "us-east-1"
@@ -29,7 +27,7 @@ stack infra {
     max_size = 9
   }
 
-  .prod {
+  environment prod {
     module eks {
       desired_size = 6
       min_size = 6

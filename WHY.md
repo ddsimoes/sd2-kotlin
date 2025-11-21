@@ -78,7 +78,23 @@ There is no overloading based on “special” keys or indentation; the few cons
 
 ### 3.1 Human‑Edited Configuration with Structure
 
-Example: a service definition with security and deployment concerns:
+Example: a service definition with security and deployment concerns.
+First, the core structure with elements and attributes:
+
+```sd2
+service api {
+    host = "localhost"
+    port = 8080
+
+    route listUsers {
+        path = "/users"
+        method = "GET"
+    }
+}
+```
+
+Now, the same service with optional security and deployment sections factored out
+into namespaces:
 
 ```sd2
 service api {
@@ -104,7 +120,9 @@ service api {
 
 Why SD2 works well here:
 
-- Namespaces (`.security`, `.deployment`) keep concerns grouped.
+- Elements (`service`, `route`) make the main structure explicit.
+- Namespaces (`.security`, `.deployment`) keep cross‑cutting concerns grouped,
+  without turning them into first‑class domain elements.
 - Constructors (`duration`) are validated, not just strings.
 - You can still embed foreign code or scripts where needed.
 
@@ -132,7 +150,8 @@ deploy api {
 Compared to large YAML manifests:
 
 - The structure is explicit via keywords and blocks, not nested maps everywhere.
-- Namespaces make it easy to scope advanced concerns without deep nesting.
+- Namespaces can be used, when needed, to scope advanced concerns without deep
+  nesting, but you can also model them as regular elements.
 - You can attach annotations/qualifiers without changing your core schema.
 
 ### 3.3 Config + Embedded Foreign Code
@@ -211,7 +230,9 @@ Benefits:
   ```sd2
   keyword Name : Type qualifier a.b, c.d { ... }
   ```
-- **Namespaces**: `.config { ... }` gives you a nested scope without new keywords.
+- **Namespaces**: `.config { ... }` gives you a nested scope without new keywords
+  and are best used for optional or cross‑cutting extension blocks (e.g.
+  `.security`, `.monitoring`), not for every kind of nesting.
 - **Qualifiers** with continuation (`|`) support readable modifier lists:
   ```sd2
   service auth : AuthService

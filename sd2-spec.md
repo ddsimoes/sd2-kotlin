@@ -488,12 +488,16 @@ Ordering rules:
 ```sd2
 server api {
     port = 8080
+
+    // Cross-cutting concern in its own extension slot
     .security {
         ssl = true
         cert = "/path/to/cert"
         rule cors { origin = "*" }
         rule rateLimit { requests = 100, window = duration("PT1M") }
     }
+
+    // Core domain concepts can remain regular elements
     .deployment {
         .docker { image = "app:latest"; tag = "v1.0.0" }
         environment prod { replicas = 3 }
@@ -506,6 +510,9 @@ Rules:
 - Chained namespaces like `.a.b {}` are not supported
 - Use nested blocks for hierarchy
 - Namespaces create nested scopes for uniqueness rules
+- Design guideline: Prefer regular elements (`security { ... }`, `deployment { ... }`)
+  for primary domain concepts, and reserve namespaces for optional or
+  cross-cutting extension blocks that may appear on many element kinds.
 
 ## 6. Annotations
 

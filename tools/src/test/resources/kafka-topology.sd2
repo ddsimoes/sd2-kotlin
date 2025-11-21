@@ -1,5 +1,3 @@
-##[sample("kafka")]
-
 kafka cluster {
   topic orders {
     partitions = 12

@@ -1,5 +1,3 @@
-##[sample("opa-gatekeeper")]
-
 policy require_owner_label {
   target = "admission.k8s.gatekeeper.sh"
   kind = "K8sRequiredLabels"

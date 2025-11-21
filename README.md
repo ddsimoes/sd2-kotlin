@@ -2,7 +2,7 @@
 
 Status: DRAFT / alpha. The format and tooling may change.
 
-This repository contains a Kotlin parser and small tools for the SD2 data format. The goal is a readable, minimal syntax to describe structured data and small domain-specific configurations.
+This repository contains a Kotlin parser and tools for the SD2 data format. SD2 is a small, context‑free configuration / DSL format for humans, with explicit structure, typed constructors (including temporal types), and safe embedded code blocks.
 
 Why SD2?
 - Context-free grammar with explicit structure (no indentation rules, no schema-dependent parsing).
@@ -10,8 +10,13 @@ Why SD2?
 - First-class support for foreign code blocks and type-tagged constructors (`sql@`, `sh@`, `regex@`).
 - Tabular arrays for compact, in-document tables.
 
-For a deeper discussion of motivation and trade-offs, see [WHY.md](WHY.md).  
-For the full specification see [sd2-spec.md](sd2-spec.md). This README focuses on the core format with simple examples.
+Getting started:
+- Guided introduction: [docs/TOUR.md](docs/TOUR.md)
+- Curated examples: [docs/EXAMPLES.md](docs/EXAMPLES.md)
+- Design rationale: [WHY.md](WHY.md)
+- Full language specification: [sd2-spec.md](sd2-spec.md)
+
+This README focuses on the core format and the Kotlin tooling.
 
 Basics
 - A document is a sequence of elements.

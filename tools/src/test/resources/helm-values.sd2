@@ -1,5 +1,3 @@
-##[sample("helm-values")]
-
 chart webapp {
   image = "org/web:1.4.0"
   replicas = 2
@@ -13,12 +11,12 @@ chart webapp {
     tls = true
   }
 
-  .dev {
+  environment dev {
     replicas = 1
     ingress {
       host = "dev-web.example.com"
       tls = false
     }
   }
-  .prod { replicas = 5 }
+  environment prod { replicas = 5 }
 }

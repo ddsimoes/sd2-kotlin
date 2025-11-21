@@ -1,5 +1,3 @@
-##[sample("aws-iam")]
-
 iam account {
   role appRole {
     assume = {

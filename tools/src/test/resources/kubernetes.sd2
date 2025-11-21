@@ -1,5 +1,3 @@
-##[sample("kubernetes")]
-
 application myapp {
   // Common defaults
   image = "org/myapp:1.2.3"
@@ -35,12 +33,12 @@ application myapp {
   }
 
   // Environment overlays
-  .staging {
+  environment staging {
     deployment web { replicas = 2 }
     ingress web { host = "staging.example.com" }
   }
 
-  .prod {
+  environment prod {
     deployment web {
       replicas = 6
       resources = { cpu = "500m", memory = "512Mi" }
